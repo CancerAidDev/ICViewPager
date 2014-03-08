@@ -22,40 +22,6 @@
 #define kFixFormerTabsPositions 0.0
 #define kFixLatterTabsPositions 0.0
 
-#define kIndicatorColor [UIColor colorWithRed:178.0/255.0 green:203.0/255.0 blue:57.0/255.0 alpha:0.75]
-#define kTabsViewBackgroundColor [UIColor colorWithRed:234.0/255.0 green:234.0/255.0 blue:234.0/255.0 alpha:0.75]
-#define kContentViewBackgroundColor [UIColor colorWithRed:248.0/255.0 green:248.0/255.0 blue:248.0/255.0 alpha:0.75]
-
-#pragma mark - UIColor+Equality
-@interface UIColor (Equality)
-- (BOOL)isEqualToColor:(UIColor *)otherColor;
-@end
-
-@implementation UIColor (Equality)
-// This method checks if two UIColors are the same
-// Thanks to @samvermette for this method: http://stackoverflow.com/a/8899384/1931781
-- (BOOL)isEqualToColor:(UIColor *)otherColor {
-    
-    CGColorSpaceRef colorSpaceRGB = CGColorSpaceCreateDeviceRGB();
-    
-    UIColor *(^convertColorToRGBSpace)(UIColor *) = ^(UIColor *color) {
-        if (CGColorSpaceGetModel(CGColorGetColorSpace(color.CGColor)) == kCGColorSpaceModelMonochrome) {
-            const CGFloat *oldComponents = CGColorGetComponents(color.CGColor);
-            CGFloat components[4] = {oldComponents[0], oldComponents[0], oldComponents[0], oldComponents[1]};
-            return [UIColor colorWithCGColor:CGColorCreate(colorSpaceRGB, components)];
-        } else {
-            return color;
-        }
-    };
-    
-    UIColor *selfColor = convertColorToRGBSpace(self);
-    otherColor = convertColorToRGBSpace(otherColor);
-    CGColorSpaceRelease(colorSpaceRGB);
-    
-    return [selfColor isEqual:otherColor];
-}
-@end
-
 #pragma mark - TabView
 @class TabView;
 
@@ -75,7 +41,9 @@
 - (void)setSelected:(BOOL)selected {
     _selected = selected;
     // Update view as state changed
+   
     [self setNeedsDisplay];
+   
 }
 - (void)drawRect:(CGRect)rect {
     
@@ -108,6 +76,7 @@
         [bezierPath setLineWidth:5.0];
         [self.indicatorColor setStroke];
         [bezierPath stroke];
+        
     }
 }
 @end
@@ -221,23 +190,22 @@
     frame.origin.x = 0.0;
     frame.origin.y = [self.tabLocation boolValue] ? topLayoutGuide + CGRectGetHeight(self.tabsView.frame) : topLayoutGuide;
     frame.size.width = CGRectGetWidth(self.view.frame);
-    frame.size.height = CGRectGetHeight(self.view.frame) - (topLayoutGuide + CGRectGetHeight(self.tabsView.frame)) - CGRectGetHeight(self.tabBarController.tabBar.frame);
+    frame.size.height = CGRectGetHeight(self.view.frame) - (topLayoutGuide + CGRectGetHeight(self.tabsView.frame));
     self.contentView.frame = frame;
 }
 
 #pragma mark - IBAction
 - (IBAction)handleTapGesture:(id)sender {
     
+    self.animatingToTab = YES;
+    
     // Get the desired page's index
     UITapGestureRecognizer *tapGestureRecognizer = (UITapGestureRecognizer *)sender;
     UIView *tabView = tapGestureRecognizer.view;
     __block NSUInteger index = [self.tabs indexOfObject:tabView];
     
-    //if Tap is not selected Tab(new Tab)
-    if (self.activeTabIndex != index) {
-        // Select the tab
-        [self selectTabAtIndex:index];
-    }
+    // Select the tab
+    [self selectTabAtIndex:index];
 }
 
 #pragma mark - Interface rotation
@@ -287,8 +255,8 @@
 }
 - (void)setStartFromSecondTab:(NSNumber *)startFromSecondTab {
     
-    if ([startFromSecondTab floatValue] != 1.0 && [startFromSecondTab floatValue] != 0.0)
-        startFromSecondTab = [startFromSecondTab boolValue] ? [NSNumber numberWithBool:YES] : [NSNumber numberWithBool:NO];
+  //  if ([startFromSecondTab floatValue] != 1.0 && [startFromSecondTab floatValue] != 0.0)
+    //    startFromSecondTab = [startFromSecondTab boolValue] ? [NSNumber numberWithBool:YES] : [NSNumber numberWithBool:NO];
     
     _startFromSecondTab = startFromSecondTab;
 }
@@ -317,20 +285,24 @@
 - (void)setActiveTabIndex:(NSUInteger)activeTabIndex {
     
     TabView *activeTabView;
-    
+    NSUInteger oldTab=self.activeTabIndex;
+      _activeTabIndex = activeTabIndex;
     // Set to-be-inactive tab unselected
-    activeTabView = [self tabViewAtIndex:self.activeTabIndex];
+    activeTabView = [self tabViewAtIndex:oldTab];
     activeTabView.selected = NO;
+   
+   
     
     // Set to-be-active tab selected
+    
     activeTabView = [self tabViewAtIndex:activeTabIndex];
     activeTabView.selected = YES;
-    
     // Set current activeTabIndex
-    _activeTabIndex = activeTabIndex;
+   
     
     // Bring tab to active position
     // Position the tab in center if centerCurrentTab option is provided as YES
+    /*
     UIView *tabView = [self tabViewAtIndex:self.activeTabIndex];
     CGRect frame = tabView.frame;
     
@@ -354,17 +326,12 @@
     }
     
     [self.tabsView scrollRectToVisible:frame animated:YES];
+     */
 }
 - (void)setActiveContentIndex:(NSUInteger)activeContentIndex {
     
     // Get the desired viewController
     UIViewController *viewController = [self viewControllerAtIndex:activeContentIndex];
-    
-    if (!viewController) {
-        viewController = [[UIViewController alloc] init];
-        viewController.view = [[UIView alloc] init];
-        viewController.view.backgroundColor = [UIColor clearColor];
-    }
     
     // __weak pageViewController to be used in blocks to prevent retaining strong reference to self
     __weak UIPageViewController *weakPageViewController = self.pageViewController;
@@ -375,9 +342,7 @@
         [self.pageViewController setViewControllers:@[viewController]
                                           direction:UIPageViewControllerNavigationDirectionForward
                                            animated:NO
-                                         completion:^(BOOL completed) {
-                                             weakSelf.animatingToTab = NO;
-                                         }];
+                                         completion:nil];
         
     } else if (!(activeContentIndex + 1 == self.activeContentIndex || activeContentIndex - 1 == self.activeContentIndex)) {
         
@@ -402,9 +367,7 @@
         [self.pageViewController setViewControllers:@[viewController]
                                           direction:(activeContentIndex < self.activeContentIndex) ? UIPageViewControllerNavigationDirectionReverse : UIPageViewControllerNavigationDirectionForward
                                            animated:YES
-                                         completion:^(BOOL completed) {
-                                             weakSelf.animatingToTab = NO;
-                                         }];
+                                         completion:nil];
     }
     
     // Clean out of sight contents
@@ -481,7 +444,7 @@
         CGFloat value = kStartFromSecondTab;
         if ([self.delegate respondsToSelector:@selector(viewPager:valueForOption:withDefault:)])
             value = [self.delegate viewPager:self valueForOption:ViewPagerOptionStartFromSecondTab withDefault:value];
-        self.startFromSecondTab = [NSNumber numberWithFloat:value];
+        self.startFromSecondTab = [NSNumber numberWithInt:value];
     }
     return _startFromSecondTab;
 }
@@ -519,7 +482,7 @@
 - (UIColor *)indicatorColor {
     
     if (!_indicatorColor) {
-        UIColor *color = kIndicatorColor;
+        UIColor *color = [UIColor colorWithRed:178.0/255.0 green:203.0/255.0 blue:57.0/255.0 alpha:0.75];
         if ([self.delegate respondsToSelector:@selector(viewPager:colorForComponent:withDefault:)]) {
             color = [self.delegate viewPager:self colorForComponent:ViewPagerIndicator withDefault:color];
         }
@@ -530,7 +493,7 @@
 - (UIColor *)tabsViewBackgroundColor {
     
     if (!_tabsViewBackgroundColor) {
-        UIColor *color = kTabsViewBackgroundColor;
+        UIColor *color = [UIColor colorWithRed:234.0/255.0 green:234.0/255.0 blue:234.0/255.0 alpha:0.75];
         if ([self.delegate respondsToSelector:@selector(viewPager:colorForComponent:withDefault:)]) {
             color = [self.delegate viewPager:self colorForComponent:ViewPagerTabsView withDefault:color];
         }
@@ -541,7 +504,7 @@
 - (UIColor *)contentViewBackgroundColor {
     
     if (!_contentViewBackgroundColor) {
-        UIColor *color = kContentViewBackgroundColor;
+        UIColor *color = [UIColor colorWithRed:248.0/255.0 green:248.0/255.0 blue:248.0/255.0 alpha:0.75];
         if ([self.delegate respondsToSelector:@selector(viewPager:colorForComponent:withDefault:)]) {
             color = [self.delegate viewPager:self colorForComponent:ViewPagerContent withDefault:color];
         }
@@ -575,18 +538,11 @@
 }
 - (void)selectTabAtIndex:(NSUInteger)index {
     
-    if (index >= self.tabCount) {
-        return;
-    }
-    
-    self.animatingToTab = YES;
-    
     // Set activeTabIndex
     self.activeTabIndex = index;
     
     // Set activeContentIndex
     self.activeContentIndex = index;
-    
     // Inform delegate about the change
     if ([self.delegate respondsToSelector:@selector(viewPager:didChangeTabToIndex:)]) {
         [self.delegate viewPager:self didChangeTabToIndex:self.activeTabIndex];
@@ -648,61 +604,6 @@
     
     // Update tabsView's contentSize with the new width
     self.tabsView.contentSize = CGSizeMake(contentSizeWidth, [self.tabHeight floatValue]);
-    
-}
-- (void)setNeedsReloadColors {
-    
-    // If our delegate doesn't respond to our colors method, return
-    // Otherwise reload colors
-    if (![self.delegate respondsToSelector:@selector(viewPager:colorForComponent:withDefault:)]) {
-        return;
-    }
-    
-    // These colors will be updated
-    UIColor *indicatorColor;
-    UIColor *tabsViewBackgroundColor;
-    UIColor *contentViewBackgroundColor;
-    
-    // Get indicatorColor and check if it is different from the current one
-    // If it is, update it
-    indicatorColor = [self.delegate viewPager:self colorForComponent:ViewPagerIndicator withDefault:kIndicatorColor];
-    
-    if (![self.indicatorColor isEqualToColor:indicatorColor]) {
-        
-        // We will iterate through all of the tabs to update its indicatorColor
-        [self.tabs enumerateObjectsUsingBlock:^(TabView *tabView, NSUInteger index, BOOL *stop) {
-            tabView.indicatorColor = indicatorColor;
-        }];
-        
-        // Update indicatorColor to check again later
-        self.indicatorColor = indicatorColor;
-    }
-    
-    // Get tabsViewBackgroundColor and check if it is different from the current one
-    // If it is, update it
-    tabsViewBackgroundColor = [self.delegate viewPager:self colorForComponent:ViewPagerTabsView withDefault:kTabsViewBackgroundColor];
-    
-    if (![self.tabsViewBackgroundColor isEqualToColor:tabsViewBackgroundColor]) {
-        
-        // Update it
-        self.tabsView.backgroundColor = tabsViewBackgroundColor;
-        
-        // Update tabsViewBackgroundColor to check again later
-        self.tabsViewBackgroundColor = tabsViewBackgroundColor;
-    }
-    
-    // Get contentViewBackgroundColor and check if it is different from the current one
-    // Yeah update it, too
-    contentViewBackgroundColor = [self.delegate viewPager:self colorForComponent:ViewPagerContent withDefault:kContentViewBackgroundColor];
-    
-    if (![self.contentViewBackgroundColor isEqualToColor:contentViewBackgroundColor]) {
-        
-        // Yup, update
-        self.contentView.backgroundColor = contentViewBackgroundColor;
-        
-        // Update this, too, to check again later
-        self.contentViewBackgroundColor = contentViewBackgroundColor;
-    }
     
 }
 
@@ -793,7 +694,6 @@
         self.tabsView = [[UIScrollView alloc] initWithFrame:CGRectMake(0.0, 0.0, CGRectGetWidth(self.view.frame), [self.tabHeight floatValue])];
         self.tabsView.autoresizingMask = UIViewAutoresizingFlexibleWidth;
         self.tabsView.backgroundColor = self.tabsViewBackgroundColor;
-        self.tabsView.scrollsToTop = NO;
         self.tabsView.showsHorizontalScrollIndicator = NO;
         self.tabsView.showsVerticalScrollIndicator = NO;
         self.tabsView.tag = kTabViewTag;
@@ -861,7 +761,7 @@
     }
     
     // Select starting tab
-    NSUInteger index = [self.startFromSecondTab boolValue] ? 1 : 0;
+    NSUInteger index = [self.startFromSecondTab intValue];
     [self selectTabAtIndex:index];
     
     // Set setup done
@@ -873,11 +773,13 @@
     if (index >= self.tabCount) {
         return nil;
     }
-    
-    if ([[self.tabs objectAtIndex:index] isEqual:[NSNull null]]) {
-
-        // Get view from dataSource
-        UIView *tabViewContent = [self.dataSource viewPager:self viewForTabAtIndex:index];
+    UIView *tabViewContent = [self.dataSource viewPager:self viewForTabAtIndex:index];
+    if(index == _activeTabIndex){
+        tabViewContent = [self.dataSource viewPager:self viewForActiveTabAtIndex:index];
+    }
+    // Get view from dataSource
+  if ([[self.tabs objectAtIndex:index] isEqual:[NSNull null]]) {
+      
         tabViewContent.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
         
         // Create TabView and subview the content
@@ -887,12 +789,18 @@
         [tabView setIndicatorColor:self.indicatorColor];
         
         tabViewContent.center = tabView.center;
-        
         // Replace the null object with tabView
-        [self.tabs replaceObjectAtIndex:index withObject:tabView];
+         [self.tabs replaceObjectAtIndex:index withObject:tabView];
+   }
+    TabView *test = [self.tabs objectAtIndex:index];
+    NSArray *subViewArray = [test subviews];
+    for (id obj in subViewArray)
+    {
+        [obj removeFromSuperview];
     }
+    [test addSubview:tabViewContent];
+    return test;
     
-    return [self.tabs objectAtIndex:index];
 }
 - (NSUInteger)indexForTabView:(UIView *)tabView {
     
