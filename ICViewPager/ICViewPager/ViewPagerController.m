@@ -203,6 +203,12 @@
     UITapGestureRecognizer *tapGestureRecognizer = (UITapGestureRecognizer *)sender;
     UIView *tabView = tapGestureRecognizer.view;
     __block NSUInteger index = [self.tabs indexOfObject:tabView];
+
+    if ([self.delegate respondsToSelector:@selector(viewPager:shouldChangeTabToIndex:)]) {
+        if (![self.delegate viewPager:self shouldChangeTabToIndex:index]) {
+            return;
+        }
+    }
     
     // Select the tab
     [self selectTabAtIndex:index];
