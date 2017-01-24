@@ -35,11 +35,13 @@ typedef NS_ENUM(NSUInteger, ViewPagerOption) {
  * Main parts of the ViewPagerController
  *
  * ViewPagerIndicator: The colored line in the view of the active tab
+ * ViewPagerIndicatorSeperators: The colored line above & below tab
  * ViewPagerTabsView: The tabs view itself
  * ViewPagerContent: Provided views goes here as content
  */
 typedef NS_ENUM(NSUInteger, ViewPagerComponent) {
     ViewPagerIndicator,
+    ViewPagerIndicatorSeperators,
     ViewPagerTabsView,
     ViewPagerContent
 };

@@ -28,6 +28,7 @@
 @interface TabView : UIView
 @property (nonatomic, getter = isSelected) BOOL selected;
 @property (nonatomic) UIColor *indicatorColor;
+@property (nonatomic) UIColor *seperatorColor;
 @end
 
 @implementation TabView
@@ -53,7 +54,7 @@
     bezierPath = [UIBezierPath bezierPath];
     [bezierPath moveToPoint:CGPointMake(0.0, 0.0)];
     [bezierPath addLineToPoint:CGPointMake(CGRectGetWidth(rect), 0.0)];
-    [[UIColor colorWithWhite:197.0/255.0 alpha:0.75] setStroke];
+    [self.seperatorColor setStroke];
     [bezierPath setLineWidth:1.0];
     [bezierPath stroke];
     
@@ -61,7 +62,7 @@
     bezierPath = [UIBezierPath bezierPath];
     [bezierPath moveToPoint:CGPointMake(0.0, CGRectGetHeight(rect))];
     [bezierPath addLineToPoint:CGPointMake(CGRectGetWidth(rect), CGRectGetHeight(rect))];
-    [[UIColor colorWithWhite:197.0/255.0 alpha:0.75] setStroke];
+    [self.seperatorColor setStroke];
     [bezierPath setLineWidth:1.0];
     [bezierPath stroke];
     
@@ -115,6 +116,7 @@
 // Colors
 @property (nonatomic) UIColor *indicatorColor;
 @property (nonatomic) UIColor *tabsViewBackgroundColor;
+@property (nonatomic) UIColor *tabsViewSeperatorColor;
 @property (nonatomic) UIColor *contentViewBackgroundColor;
 
 @end
@@ -496,6 +498,7 @@
     }
     return _indicatorColor;
 }
+
 - (UIColor *)tabsViewBackgroundColor {
     
     if (!_tabsViewBackgroundColor) {
@@ -507,6 +510,19 @@
     }
     return _tabsViewBackgroundColor;
 }
+
+- (UIColor *)tabsViewSeperatorColor {
+    
+    if (!_tabsViewSeperatorColor) {
+        UIColor *color = [UIColor colorWithWhite:197.0/255.0 alpha:0.75];
+        if ([self.delegate respondsToSelector:@selector(viewPager:colorForComponent:withDefault:)]) {
+            color = [self.delegate viewPager:self colorForComponent:ViewPagerIndicatorSeperators withDefault:color];
+        }
+        self.tabsViewSeperatorColor = color;
+    }
+    return _tabsViewSeperatorColor;
+}
+
 - (UIColor *)contentViewBackgroundColor {
     
     if (!_contentViewBackgroundColor) {
@@ -537,6 +553,7 @@
     // Empty all colors
     _indicatorColor = nil;
     _tabsViewBackgroundColor = nil;
+    _tabsViewSeperatorColor = nil;
     _contentViewBackgroundColor = nil;
     
     // Call to setup again with the updated data
@@ -637,6 +654,8 @@
     switch (component) {
         case ViewPagerIndicator:
             return [self indicatorColor];
+        case ViewPagerIndicatorSeperators:
+            return [self tabsViewSeperatorColor];
         case ViewPagerTabsView:
             return [self tabsViewBackgroundColor];
         case ViewPagerContent:
@@ -793,7 +812,8 @@
         [tabView addSubview:tabViewContent];
         [tabView setClipsToBounds:YES];
         [tabView setIndicatorColor:self.indicatorColor];
-        
+        [tabView setSeperatorColor:self.tabsViewSeperatorColor];
+      
         tabViewContent.center = tabView.center;
         // Replace the null object with tabView
          [self.tabs replaceObjectAtIndex:index withObject:tabView];
